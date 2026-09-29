@@ -1,0 +1,56 @@
+name: butter_toast
+description: "Smooth, buttery toasts for Flutter: pill and Sonner-style card toasts, 7 positions with their own motion, promise toasts, swipe to dismiss, no context needed."
+version: 0.1.0
+repository: https://github.com/parthbhensdadiya226/butter_toast
+issue_tracker: https://github.com/parthbhensdadiya226/butter_toast/issues
+
+topics:
+  - toast
+  - notification
+  - snackbar
+  - animation
+  - ui
+
+screenshots:
+  - description: Card toasts stacking, spreading out and swiping away.
+    path: doc/hero.gif
+  - description: Corner toasts slide in from the side of the screen.
+    path: doc/positions.gif
+  - description: A promise toast turning from loading into success.
+    path: doc/promise.gif
+  - description: A card toast with a description.
+    path: doc/card.png
+  - description: A long message collapsed behind Show more.
+    path: doc/long.png
+
+platforms:
+  android:
+  ios:
+  web:
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+  flutter: ">=3.32.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.buttertoast.butter_toast
+        pluginClass: ButterToastPlugin
+      ios:
+        pluginClass: ButterToastPlugin
+      web:
+        pluginClass: ButterToastWeb
+        fileName: src/web_plugin.dart
