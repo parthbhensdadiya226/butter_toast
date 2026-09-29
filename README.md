@@ -46,9 +46,9 @@ your way.
 
 ## 🎬 See it move
 
-| Corners slide in from the side | Promise: loading → success |
-|:---:|:---:|
-| <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/positions.gif" width="240" alt="Card toasts sliding in from each corner"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/promise.gif" width="240" alt="A loading pill turning into a success pill"> |
+| Swipe any toast, any direction | Corners slide in from the side | Promise: loading → success |
+|:---:|:---:|:---:|
+| <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/swipe.gif" width="220" alt="Toasts in a spread stack swiped away diagonally, up and sideways, starting with the middle one"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/positions.gif" width="220" alt="Card toasts sliding in from each corner"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/promise.gif" width="220" alt="A loading pill turning into a success pill"> |
 
 | Pill | Card | Long message |
 |:---:|:---:|:---:|
@@ -171,6 +171,10 @@ ButterToastTheme(
 )
 ```
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/app_icon.png" width="280" alt="Three toasts showing the app's launcher icon instead of type icons">
+</p>
+
 | Platform | Icon used |
 |---|---|
 | Android | The launcher icon, shown round like the launcher does |
@@ -184,6 +188,10 @@ hide the icon on one toast, pass `showIcon: false`.
 
 Toasts live above the `Navigator`, so they always show **on top of**
 dialogs and bottom sheets, and aren't dimmed by their barrier.
+
+| Over a dialog | Over a bottom sheet |
+|:---:|:---:|
+| <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/dialog.png" width="220" alt="A toast shown above an open dialog, not dimmed by its barrier"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/bottom_sheet.png" width="220" alt="A top toast and a bottom toast shown above an open bottom sheet"> |
 
 - **Dialog:** the toast appears at its usual position, above the dialog.
 - **Bottom sheet:** a bottom toast floats over the sheet's lower edge. To

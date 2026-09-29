@@ -14,6 +14,8 @@ topics:
 screenshots:
   - description: Card toasts stacking, spreading out and swiping away.
     path: doc/hero.gif
+  - description: Swipe any toast away in any direction, even from the middle of a stack.
+    path: doc/swipe.gif
   - description: Corner toasts slide in from the side of the screen.
     path: doc/positions.gif
   - description: A promise toast turning from loading into success.
@@ -22,6 +24,10 @@ screenshots:
     path: doc/card.png
   - description: A long message collapsed behind Show more.
     path: doc/long.png
+  - description: The app's launcher icon on every toast, read at run time.
+    path: doc/app_icon.png
+  - description: Toasts show above dialogs.
+    path: doc/dialog.png
 
 platforms:
   android:
