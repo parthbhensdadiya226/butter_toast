@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'controller.dart' show ButterToastHandle;
+import 'theme.dart' show ButterToastTheme;
 
 /// What a toast is about. It picks the default icon and its colour.
 enum ButterToastType {
@@ -116,6 +117,7 @@ class ToastData {
     this.builder,
     this.tag,
     this.showIcon = true,
+    this.theme,
   });
 
   /// The main text. In a card this is the title.
@@ -156,6 +158,9 @@ class ToastData {
   /// Whether to show an icon at all.
   final bool showIcon;
 
+  /// Theme for this toast only, laid over the app's toast theme.
+  final ButterToastTheme? theme;
+
   /// Whether [other] would show the same thing, so it can be merged.
   bool sameContentAs(ToastData other) =>
       builder == null &&
@@ -163,7 +168,8 @@ class ToastData {
       message == other.message &&
       description == other.description &&
       type == other.type &&
-      style == other.style;
+      style == other.style &&
+      theme == other.theme;
 
   /// A copy shown at [position] with [style].
   ToastData resolved(ButterToastPosition position, ButterToastStyle style) =>
@@ -202,5 +208,6 @@ class ToastData {
     builder: builder,
     tag: tag,
     showIcon: showIcon,
+    theme: theme,
   );
 }

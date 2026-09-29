@@ -53,6 +53,11 @@ abstract final class ButterToast {
   /// default icon for [type]; [showIcon] false hides the icon. A [tag]
   /// makes the toast replace any toast on screen with the same tag, so
   /// repeated taps update one toast instead of adding more.
+  ///
+  /// [theme] styles this toast only. It is laid over the app's toast theme,
+  /// so set just the fields you want to change. Its colours, text, shadows,
+  /// icon, `maxLines`, `style`, `position` and `duration` apply; layout of
+  /// the whole stack (margins, width, gap, limits) stays app-wide.
   static ButterToastHandle show(
     String message, {
     String? description,
@@ -65,19 +70,21 @@ abstract final class ButterToast {
     bool dismissible = true,
     String? tag,
     bool showIcon = true,
+    ButterToastTheme? theme,
   }) => _controller.show(
     ToastData(
       message: message,
       description: description,
       type: type,
-      style: style,
-      position: position,
-      duration: duration,
+      style: style ?? theme?.style,
+      position: position ?? theme?.position,
+      duration: duration ?? theme?.duration,
       icon: icon,
       onTap: onTap,
       dismissible: dismissible,
       tag: tag,
       showIcon: showIcon,
+      theme: theme,
     ),
   );
 
@@ -93,6 +100,7 @@ abstract final class ButterToast {
     bool dismissible = true,
     String? tag,
     bool showIcon = true,
+    ButterToastTheme? theme,
   }) => show(
     message,
     description: description,
@@ -105,6 +113,7 @@ abstract final class ButterToast {
     dismissible: dismissible,
     tag: tag,
     showIcon: showIcon,
+    theme: theme,
   );
 
   /// Shows a [ButterToastType.error] toast. See [show].
@@ -119,6 +128,7 @@ abstract final class ButterToast {
     bool dismissible = true,
     String? tag,
     bool showIcon = true,
+    ButterToastTheme? theme,
   }) => show(
     message,
     description: description,
@@ -131,6 +141,7 @@ abstract final class ButterToast {
     dismissible: dismissible,
     tag: tag,
     showIcon: showIcon,
+    theme: theme,
   );
 
   /// Shows a [ButterToastType.warning] toast. See [show].
@@ -145,6 +156,7 @@ abstract final class ButterToast {
     bool dismissible = true,
     String? tag,
     bool showIcon = true,
+    ButterToastTheme? theme,
   }) => show(
     message,
     description: description,
@@ -157,6 +169,7 @@ abstract final class ButterToast {
     dismissible: dismissible,
     tag: tag,
     showIcon: showIcon,
+    theme: theme,
   );
 
   /// Shows a [ButterToastType.info] toast. See [show].
@@ -171,6 +184,7 @@ abstract final class ButterToast {
     bool dismissible = true,
     String? tag,
     bool showIcon = true,
+    ButterToastTheme? theme,
   }) => show(
     message,
     description: description,
@@ -183,6 +197,7 @@ abstract final class ButterToast {
     dismissible: dismissible,
     tag: tag,
     showIcon: showIcon,
+    theme: theme,
   );
 
   /// Shows a [ButterToastType.loading] toast with a spinner. It stays until
@@ -195,6 +210,7 @@ abstract final class ButterToast {
     bool dismissible = false,
     String? tag,
     bool showIcon = true,
+    ButterToastTheme? theme,
   }) => show(
     message,
     description: description,
@@ -204,6 +220,7 @@ abstract final class ButterToast {
     dismissible: dismissible,
     tag: tag,
     showIcon: showIcon,
+    theme: theme,
   );
 
   /// Shows a loading toast while [future] runs, then turns it into a
@@ -228,12 +245,14 @@ abstract final class ButterToast {
     ButterToastStyle? style,
     ButterToastPosition? position,
     String? tag,
+    ButterToastTheme? theme,
   }) async {
     final toast = ButterToast.loading(
       loading,
       style: style,
       position: position,
       tag: tag,
+      theme: theme,
     );
     try {
       final value = await future;
@@ -584,7 +603,9 @@ class _ToastStackState extends State<_ToastStack> {
           version: e.version,
           dismissing: e.dismissing,
           position: position,
-          theme: widget.theme,
+          theme: e.data.theme == null
+              ? widget.theme
+              : widget.theme.withToast(context, e.data.theme!),
           controller: widget.controller,
           maxHeight: widget.budget,
           reduceMotion: widget.reduceMotion,

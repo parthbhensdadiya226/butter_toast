@@ -12,10 +12,11 @@
 * A spread-out stack pauses its timers and closes again on a tap outside or
   after 5 seconds without a touch.
 * Repeated identical toasts merge; a `tag` updates a toast in place.
-* `ButterToastAppIcon` shows the app's launcher icon, read at run time;
-  `icon`, `typeIcons` and `showIcon` control toast icons.
+* `ButterToastAppIcon` shows the app's launcher icon, read at run time (on
+  the web, from the web app manifest); `icon`, `typeIcons` and `showIcon`
+  control toast icons.
 * `ButterToast.promise` turns one toast from loading into success or error.
 * Height budget with "Show more" for long text; keeps clear of the safe area
   and the keyboard, and shows above dialogs and bottom sheets.
-* `ButterToastTheme` as a `ThemeExtension`, plus `ButterToast.custom` for
-  fully custom toasts.
+* `ButterToastTheme` as a `ThemeExtension`, a `theme:` parameter to style a
+  single toast, and `ButterToast.custom` for fully custom toasts.

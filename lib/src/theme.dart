@@ -397,6 +397,11 @@ class ResolvedToastTheme {
 
   final ButterToastTheme _source;
 
+  /// This theme with [toast] laid over it, for a toast shown with its own
+  /// theme.
+  ResolvedToastTheme withToast(BuildContext context, ButterToastTheme toast) =>
+      ResolvedToastTheme.of(context, toast.merge(_source));
+
   /// Icon for plain toasts, and for every toast when [typeIcons] is false.
   Widget? get icon => _source.icon;
 

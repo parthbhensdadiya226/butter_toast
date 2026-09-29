@@ -305,6 +305,32 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('a per-toast theme styles only that toast', (tester) async {
+    tester.view
+      ..physicalSize = const Size(400, 800)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app());
+    const checkout = ButterToastTheme(
+      position: ButterToastPosition.topCenter,
+      pillForegroundColor: Color(0xFF00FF00),
+      icon: Icon(Icons.favorite),
+      typeIcons: false,
+    );
+    ButterToast.success('Paid', theme: checkout);
+    ButterToast.success('Saved', position: ButterToastPosition.bottomLeft);
+    await tester.pumpAndSettle();
+
+    expect(tester.getCenter(find.text('Paid')).dy, lessThan(400));
+    final paid = tester.widget<Text>(find.text('Paid'));
+    expect(paid.style?.color, const Color(0xFF00FF00));
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
+    // The other toast keeps the app theme.
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    ButterToast.dismissAll();
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('taps pass through empty space to the app', (tester) async {
     var tapped = false;
     await tester.pumpWidget(

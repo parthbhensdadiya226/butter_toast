@@ -19,13 +19,33 @@ dismiss. No `BuildContext` needed.
 
 ---
 
+## 📚 Contents
+
+- [Why butter_toast?](#-why-butter_toast)
+- [See it move](#-see-it-move)
+- [Quick start](#-quick-start)
+- [Showing toasts: `show` and the shortcuts](#-showing-toasts-show-and-the-shortcuts)
+- [All parameters](#-all-parameters)
+- [Updating and dismissing a toast](#-updating-and-dismissing-a-toast)
+- [Promise toasts](#-promise-toasts)
+- [Positions](#-positions)
+- [Pill or card](#-pill-or-card)
+- [Swipe to dismiss](#-swipe-to-dismiss)
+- [Repeated taps and tags](#-repeated-taps-and-tags)
+- [Icons and the app icon](#%EF%B8%8F-icons-and-the-app-icon)
+- [Theming: app-wide and per toast](#-theming-app-wide-and-per-toast)
+- [Dialogs and bottom sheets](#-dialogs-and-bottom-sheets)
+- [Long text, keyboard and safe area](#-long-text-keyboard-and-safe-area)
+- [Fully custom toasts](#-fully-custom-toasts)
+- [Coming from fluttertoast?](#-coming-from-fluttertoast)
+- [Platforms](#-platforms)
+
 ## ✨ Why butter_toast?
 
-`fluttertoast` shows the native Android toast, and since Android 11 the
-system cuts that toast to **two lines**, ignores your position and blocks
-custom layouts. Most Flutter alternatives fix that by drawing a wide
-**snackbar**. butter_toast draws a real **toast**: small, light, and out of
-your way.
+`fluttertoast` shows the native Android toast. Since Android 11 the system
+cuts that toast to **two lines**, ignores your position and blocks custom
+layouts. Most Flutter alternatives fix that by drawing a wide **snackbar**.
+butter_toast draws a real **toast**: small, light, and out of your way.
 
 | | |
 |---|---|
@@ -40,7 +60,7 @@ your way.
 | 🖼️ **Your app icon** | Show the real launcher icon on toasts, read at run time, no asset needed |
 | 🧹 **No pile-ups** | Repeated taps merge into one toast; a `tag` updates a toast in place |
 | 🧵 **No context needed** | Call it from blocs, services or a Dio interceptor |
-| 🎨 **Themeable** | A `ThemeExtension` with light and dark defaults, or build your own toast |
+| 🎨 **Themeable** | App-wide with a `ThemeExtension`, or per toast with `theme:` |
 | ♿ **Accessible** | Screen readers announce toasts; reduced motion fades instead of sliding |
 | 📦 **Zero dependencies** | Only the Flutter SDK |
 
@@ -54,14 +74,16 @@ your way.
 |:---:|:---:|:---:|
 | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/pill.png" width="220" alt="Pill toast"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/card.png" width="220" alt="Card toast with description"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/long.png" width="220" alt="Long message collapsed behind Show more"> |
 
-## 🚀 Getting started
+## 🚀 Quick start
+
+**1. Add the package**
 
 ```yaml
 dependencies:
   butter_toast: ^0.1.0
 ```
 
-Add one line to your app:
+**2. Add the toast layer to your app, once**
 
 ```dart
 import 'package:butter_toast/butter_toast.dart';
@@ -72,15 +94,121 @@ MaterialApp(
 );
 ```
 
-Then toast from anywhere:
+`ButterToast.init()` puts the toasts above the `Navigator`, so they show on
+every screen, dialog and bottom sheet. Already using `builder`? Chain them:
+
+```dart
+builder: (context, child) => ButterToast.init()(context, MyWrapper(child)),
+```
+
+**3. Toast from anywhere**
 
 ```dart
 ButterToast.show('Copied to clipboard');
-ButterToast.success('Event created', description: 'Sunday, 9:00 AM');
-ButterToast.error("Couldn't send", description: 'Check your connection.');
-ButterToast.warning('Storage almost full');
-ButterToast.info('New version available');
 ```
+
+No `BuildContext`, so it works from widgets, blocs, services and
+interceptors alike.
+
+## 🍞 Showing toasts: `show` and the shortcuts
+
+There's **one** method that does everything, `ButterToast.show`. You choose
+what the toast is about with the `type` enum:
+
+```dart
+ButterToast.show('Event created', type: ButterToastType.success);
+ButterToast.show("Couldn't send", type: ButterToastType.error);
+```
+
+For everyday code there are **shortcuts** that fill in the type for you.
+They take the same parameters as `show`, so use whichever reads better:
+
+| Shortcut | Same as | Looks like |
+|---|---|---|
+| `ButterToast.show('Hi')` | `type: ButterToastType.normal` | No icon (or your theme `icon`) |
+| `ButterToast.success('Saved')` | `type: ButterToastType.success` | ✅ green check |
+| `ButterToast.error('Failed')` | `type: ButterToastType.error` | ⛔ red icon |
+| `ButterToast.warning('Low storage')` | `type: ButterToastType.warning` | ⚠️ amber icon |
+| `ButterToast.info('New version')` | `type: ButterToastType.info` | ℹ️ blue icon |
+| `ButterToast.loading('Saving…')` | `type: ButterToastType.loading` | 🔄 spinner, stays until updated or dismissed |
+
+**Which one should I use?**
+
+- Use a **shortcut** when you know the type while writing the code. It's
+  shorter and reads like a sentence:
+
+  ```dart
+  ButterToast.success('Profile saved', description: 'Changes are live.');
+  ```
+
+- Use **`show` with `type`** when the type comes from data, like an API
+  result, so you don't need an `if` for every case:
+
+  ```dart
+  ButterToast.show(
+    result.message,
+    type: result.ok ? ButterToastType.success : ButterToastType.error,
+  );
+  ```
+
+Both return a `ButterToastHandle` you can use to
+[update or dismiss](#-updating-and-dismissing-a-toast) the toast later.
+
+## 🧾 All parameters
+
+Every parameter except the message is optional. Anything you leave out
+comes from the [theme](#-theming-app-wide-and-per-toast).
+
+```dart
+ButterToast.show(
+  'Payment received',                        // main text (the title on a card)
+  description: '₹1,200 from Sam',            // quieter second line
+  type: ButterToastType.success,             // icon and its colour
+  style: ButterToastStyle.card,              // pill or card
+  position: ButterToastPosition.topCenter,   // one of 7 positions
+  duration: const Duration(seconds: 6),      // Duration.zero = until dismissed
+  icon: const Icon(Icons.payments),          // replaces the type icon
+  showIcon: true,                            // false hides the icon
+  onTap: () => openPayments(),               // called when tapped
+  dismissible: true,                         // false turns off swiping
+  tag: 'payment',                            // same tag updates this toast
+  theme: const ButterToastTheme(...),        // style for this toast only
+);
+```
+
+| Parameter | Type | Default | What it does |
+|---|---|---|---|
+| `message` | `String` | required | The main text. On a card it's the title. |
+| `description` | `String?` | none | A second, quieter line. |
+| `type` | `ButterToastType` | `normal` | Picks the icon and its colour. Only on `show`; the shortcuts set it for you. |
+| `style` | `ButterToastStyle?` | theme (`pill`) | `pill` or `card`. |
+| `position` | `ButterToastPosition?` | theme (`bottomCenter`) | Where it appears. See [Positions](#-positions). |
+| `duration` | `Duration?` | theme (4 s) | How long it stays. `Duration.zero` keeps it until dismissed. Not on `loading`. |
+| `icon` | `Widget?` | type icon | Replaces the icon for this toast. |
+| `showIcon` | `bool` | `true` | `false` shows no icon at all. |
+| `onTap` | `VoidCallback?` | none | Called when the toast is tapped. |
+| `dismissible` | `bool` | `true` (`false` for `loading`) | Whether it can be swiped away. |
+| `tag` | `String?` | none | A toast with the same tag replaces this one in place. |
+| `theme` | `ButterToastTheme?` | none | Theme for this toast only. See [Per toast](#per-toast). |
+
+## 🔄 Updating and dismissing a toast
+
+Every call returns a `ButterToastHandle`:
+
+```dart
+final toast = ButterToast.loading('Syncing…');
+
+// later
+toast.update(message: 'All synced', type: ButterToastType.success);
+// or
+toast.dismiss();
+
+toast.isActive; // false once it has left the screen
+```
+
+`update` morphs the same toast smoothly, and restarts its timer when it
+turns from `loading` into anything else. To clear the screen, call
+`ButterToast.dismissAll()`.
 
 ## ⏳ Promise toasts
 
@@ -95,15 +223,9 @@ final photos = await ButterToast.promise(
 );
 ```
 
-Or drive it yourself with the handle:
-
-```dart
-final toast = ButterToast.loading('Syncing…');
-// later
-toast.update(message: 'All synced', type: ButterToastType.success);
-// or
-toast.dismiss();
-```
+It returns the future's result. If the future fails, the error toast shows
+and the error is rethrown, so your own `try`/`catch` still works.
+`promise` also takes `style`, `position`, `tag` and `theme`.
 
 ## 🎯 Positions
 
@@ -119,7 +241,10 @@ ButterToast.show('Hi', position: ButterToastPosition.topRight);
 | `topRight`, `bottomRight` | ⬅️ from the right edge | ➡️ right | away from the edge |
 | `center` | 🔍 scales in | fades | replaces the last one |
 
-## 🍞 Pill or 🃏 card
+A toast keeps its position for its whole life, even if the default changes
+while it's on screen.
+
+## 🃏 Pill or card
 
 ```dart
 ButterToast.show('Saved', style: ButterToastStyle.pill);
@@ -132,8 +257,8 @@ ButterToast.show(
 
 - **Pill** hugs its text, like the platform toast. Great for "Copied" or
   "Saved".
-- **Card** shows a title and description. Several cards stack like a deck;
-  **tap** (or hover on web) to spread them out.
+- **Card** shows a title and description at full width. Several cards
+  stack like a deck; **tap** (or hover on web) to spread them out.
 
 While a stack is spread out, its timers pause so nothing disappears while
 you read. It closes again when you **tap anywhere else**, or on its own
@@ -143,14 +268,16 @@ after **5 seconds** without a touch, and then the toasts leave as usual.
 
 Throw a toast **in any direction** to dismiss it: up, down, sideways or
 diagonally. A short drag springs back. In a spread-out stack every toast
-can be swiped on its own, including the ones in the middle.
+can be swiped on its own, including the ones in the middle. Pass
+`dismissible: false` to turn swiping off for a toast.
 
-## 🧹 Repeated taps
+## 🧹 Repeated taps and tags
 
 Showing a toast identical to one already on screen restarts that toast
 instead of adding a copy, so a button tapped five times shows one toast.
-For toasts that change, give them a `tag`: a new toast with the same tag
-**updates the existing one in place**.
+
+For toasts whose text changes, give them a `tag`. A new toast with the same
+tag **updates the existing one in place**:
 
 ```dart
 ButterToast.loading('Saving…', tag: 'save');
@@ -158,17 +285,32 @@ ButterToast.loading('Saving…', tag: 'save');
 ButterToast.success('Saved', tag: 'save'); // same toast, now a success
 ```
 
-## 🖼️ App icon
+## 🖼️ Icons and the app icon
 
-Show your app's launcher icon on toasts, the way Android shows it on native
-toasts. It's read from the platform at run time, so it always matches the
-icon on the home screen. There's no asset to add or keep in sync:
+By default, typed toasts show their own icon and plain `show` toasts show
+none. You can change that at three levels:
+
+| I want to… | Do this |
+|---|---|
+| Change the icon of **one toast** | `icon: const Icon(Icons.wifi_off)` |
+| Hide the icon on **one toast** | `showIcon: false` |
+| Give **plain toasts** an icon everywhere | `ButterToastTheme(icon: ...)` |
+| Use one icon on **every toast** | `ButterToastTheme(icon: ..., typeIcons: false)` |
+
+`ButterToastAppIcon` shows your app's **launcher icon**, the way Android
+shows it on native toasts. It's read from the platform at run time, so it
+always matches the icon on the home screen, with no asset to add or keep in
+sync:
 
 ```dart
+// App-wide
 ButterToastTheme(
   icon: ButterToastAppIcon(), // plain toasts show the app icon
   typeIcons: false,           // success, error, … show it too
 )
+
+// Or just on one toast
+ButterToast.success('Order placed', icon: const ButterToastAppIcon());
 ```
 
 <p align="center">
@@ -179,10 +321,130 @@ ButterToastTheme(
 |---|---|
 | Android | The launcher icon, shown round like the launcher does |
 | iOS | The app icon from `Info.plist`, with rounded corners |
-| Web | `web/icons/Icon-192.png` |
+| Web | The icon from your web app manifest, with rounded corners |
 
-Any widget works as the icon, such as `Image.asset('assets/logo.png')`. To
-hide the icon on one toast, pass `showIcon: false`.
+Any widget works as an icon, such as `Image.asset('assets/logo.png')`.
+
+<details>
+<summary><b>How the app icon works on the web</b></summary>
+
+A web app has no launcher to ask, so butter_toast uses the same icon the
+browser uses when someone installs your app:
+
+1. `flutter build web` copies your `web` folder into `build/web`, so
+   `web/manifest.json` and `web/icons/…` are served next to your app.
+2. `ButterToastAppIcon` finds the manifest through the
+   `<link rel="manifest">` tag in `web/index.html` and reads its `icons`
+   list.
+3. It picks a regular icon (not a `maskable` one, which is made to be
+   cropped), the smallest that's at least 96 px, and loads it like any image
+   on your site.
+4. If there's no manifest, it has no icons, or the icon fails to load, it
+   uses `icons/Icon-192.png`. If that's missing too, the toast shows no icon.
+
+The lookup happens once, and the result is reused. Since it follows your
+manifest, changing the icons there (by hand or with
+`flutter_launcher_icons`) changes the toast icon too, even if you move them
+to another folder. Paths are relative to the manifest, so apps served from a
+sub-folder work as well.
+
+</details>
+
+## 🎨 Theming: app-wide and per toast
+
+### App-wide
+
+butter_toast reads a `ThemeExtension`, so light and dark themes just work:
+
+```dart
+MaterialApp(
+  theme: ThemeData(
+    extensions: const [
+      ButterToastTheme(
+        style: ButterToastStyle.card,
+        position: ButterToastPosition.topCenter,
+        duration: Duration(seconds: 3),
+        bottomOffset: 80,        // above a NavigationBar
+        maxHeightFraction: 0.4,  // height budget
+        maxLines: 3,             // lines before "Show more"
+        cardBorderRadius: 16,
+        successColor: Color(0xFF16A34A),
+      ),
+    ],
+  ),
+  darkTheme: ThemeData.dark().copyWith(
+    extensions: const [ButterToastTheme(style: ButterToastStyle.card)],
+  ),
+  builder: ButterToast.init(),
+);
+```
+
+Not using `ThemeData` extensions? Pass it to init instead:
+`ButterToast.init(theme: const ButterToastTheme(...))`.
+
+### Per toast
+
+Want a different look on one screen or for one kind of message, like a dark
+checkout toast with your app icon? Pass `theme:` to that call. Set only the
+fields you want to change; everything else still comes from the app theme.
+
+```dart
+const checkoutToast = ButterToastTheme(
+  style: ButterToastStyle.card,
+  cardColor: Color(0xFF0F172A),
+  cardForegroundColor: Colors.white,
+  cardBorderColor: Color(0xFF1E293B),
+  icon: ButterToastAppIcon(),
+  typeIcons: false,
+);
+
+ButterToast.success('Payment done', theme: checkoutToast);
+ButterToast.error('Card declined', theme: checkoutToast);
+```
+
+Keep the theme in a `const` and reuse it on every toast of that screen.
+Only the toasts you pass it to change; other toasts keep the app look.
+
+A per-toast theme applies its colours, text style, shadows, radius, icons,
+`maxLines`, `style`, `position` and `duration`. Settings that shape the
+whole stack at a position (`margin`, `maxWidth`, `gap`, `bottomOffset`,
+`visibleCount`, `maxToasts`, `maxHeightFraction`) stay app-wide.
+
+### Which setting wins?
+
+From strongest to weakest:
+
+1. A parameter on the call, such as `position:` or `icon:`
+2. The call's `theme:`
+3. `ButterToast.init(theme: ...)`
+4. The `ButterToastTheme` in your `ThemeData.extensions`
+5. The built-in defaults
+
+<details>
+<summary><b>All theme options</b></summary>
+
+| Option | Default | What it does |
+|---|---|---|
+| `style` | `pill` | Default look |
+| `position` | `bottomCenter` | Default position |
+| `duration` | 4 s | How long toasts stay (`Duration.zero` = until dismissed) |
+| `maxHeightFraction` | 0.4 | Share of the safe height toasts may use |
+| `maxLines` | 3 | Lines before "Show more" |
+| `maxWidth` | 420 | Widest a toast gets (tablet, web) |
+| `bottomOffset` | 0 | Extra space above the bottom edge |
+| `margin` | 16 | Distance from the safe area |
+| `gap` | 8 | Space between spread-out cards |
+| `visibleCount` | 3 | Cards peeking out of a stack |
+| `maxToasts` | 5 | Most toasts per position |
+| `cardColor`, `cardForegroundColor`, `cardBorderColor`, `cardBorderRadius` | from `ColorScheme` | Card look |
+| `pillColor`, `pillForegroundColor` | dark pill / light pill | Pill look |
+| `successColor`, `errorColor`, `warningColor`, `infoColor` | green, red, amber, blue | Icon colours |
+| `textStyle` | `bodyMedium` | Base text style |
+| `shadows` | soft shadow | Shadows under toasts |
+| `icon` | none | Icon for plain toasts, e.g. `ButterToastAppIcon()` |
+| `typeIcons` | `true` | `false` shows `icon` on every toast instead of type icons |
+
+</details>
 
 ## 🪟 Dialogs and bottom sheets
 
@@ -214,68 +476,17 @@ A toast never takes over the screen:
 - The notch, status bar, home indicator and landscape cutouts are always
   avoided. Use `bottomOffset` to float above your bottom navigation bar.
 
-## 🎨 Theming
-
-butter_toast reads a `ThemeExtension`, so light and dark themes just work:
-
-```dart
-MaterialApp(
-  theme: ThemeData(
-    extensions: const [
-      ButterToastTheme(
-        style: ButterToastStyle.card,
-        position: ButterToastPosition.topCenter,
-        duration: Duration(seconds: 3),
-        bottomOffset: 80,        // above a NavigationBar
-        maxHeightFraction: 0.4,  // height budget
-        maxLines: 3,             // lines before "Show more"
-        cardBorderRadius: 16,
-        successColor: Color(0xFF16A34A),
-      ),
-    ],
-  ),
-  darkTheme: ThemeData.dark().copyWith(
-    extensions: const [ButterToastTheme(style: ButterToastStyle.card)],
-  ),
-  builder: ButterToast.init(),
-);
-```
-
-<details>
-<summary><b>All theme options</b></summary>
-
-| Option | Default | What it does |
-|---|---|---|
-| `style` | `pill` | Default look |
-| `position` | `bottomCenter` | Default position |
-| `duration` | 4 s | How long toasts stay (`Duration.zero` = until dismissed) |
-| `maxHeightFraction` | 0.4 | Share of the safe height toasts may use |
-| `maxLines` | 3 | Lines before "Show more" |
-| `maxWidth` | 420 | Widest a toast gets (tablet, web) |
-| `bottomOffset` | 0 | Extra space above the bottom edge |
-| `margin` | 16 | Distance from the safe area |
-| `gap` | 8 | Space between spread-out cards |
-| `visibleCount` | 3 | Cards peeking out of a stack |
-| `maxToasts` | 5 | Most toasts per position |
-| `cardColor`, `cardForegroundColor`, `cardBorderColor`, `cardBorderRadius` | from `ColorScheme` | Card look |
-| `pillColor`, `pillForegroundColor` | dark pill / light pill | Pill look |
-| `successColor`, `errorColor`, `warningColor`, `infoColor` | green, red, amber, blue | Icon colours |
-| `textStyle` | `bodyMedium` | Base text style |
-| `shadows` | soft shadow | Shadows under toasts |
-| `icon` | none | Icon for plain toasts, e.g. `ButterToastAppIcon()` |
-| `typeIcons` | `true` | `false` shows `icon` on every toast instead of type icons |
-
-</details>
-
 ## 🧩 Fully custom toasts
 
-Draw anything; butter_toast still animates, stacks, times and positions it:
+Draw anything; butter_toast still animates, stacks, times, positions and
+swipes it:
 
 ```dart
 ButterToast.custom(
   builder: (context, toast) => MyBrandedToast(
     onClose: toast.dismiss,
   ),
+  position: ButterToastPosition.topCenter,
 );
 ```
 
@@ -285,9 +496,9 @@ ButterToast.custom(
 |---|---|
 | `Fluttertoast.showToast(msg: 'Hi')` | `ButterToast.show('Hi')` |
 | `gravity: ToastGravity.TOP` | `position: ButterToastPosition.topCenter` |
-| `toastLength: Toast.LENGTH_LONG` | `duration: Duration(seconds: 4)` |
+| `toastLength: Toast.LENGTH_SHORT` | `duration: Duration(seconds: 2)` |
+| `toastLength: Toast.LENGTH_LONG` | `duration: Duration(milliseconds: 3500)` |
 | `Fluttertoast.cancel()` | `ButterToast.dismissAll()` |
-| Cut to 2 lines on Android 11+ | ✅ Full text, with Show more |
 
 ## 📱 Platforms
 
@@ -297,7 +508,8 @@ ButterToast.custom(
 
 Drawn in Flutter, so it looks the same everywhere. A small native part
 only reads the app icon for `ButterToastAppIcon`. Tested on a Galaxy A36
-(Android 17); iOS and web haven't been tested on a device yet.
+(Android 17) and on the web (Chromium); iOS hasn't been tested on a device
+yet.
 
 ## 🤝 Contributing
 
