@@ -1,6 +1,6 @@
 name: butter_toast
 description: "Smooth, buttery toasts for Flutter: pill and Sonner-style card toasts, 7 positions with their own motion, promise toasts, swipe to dismiss, no context needed."
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/parthbhensdadiya226/butter_toast
 issue_tracker: https://github.com/parthbhensdadiya226/butter_toast/issues
 
@@ -12,8 +12,12 @@ topics:
   - ui
 
 screenshots:
-  - description: Card toasts stacking, spreading out and swiping away.
+  - description: Card toasts with Retry and Undo buttons stacking, spreading out and swiping away.
     path: doc/hero.gif
+  - description: Tap a button five times, see one toast. Fixing the form dismisses it.
+    path: doc/signup.gif
+  - description: Undo and Retry buttons and a close button on toasts.
+    path: doc/actions.png
   - description: Swipe any toast away in any direction, even from the middle of a stack.
     path: doc/swipe.gif
   - description: Corner toasts slide in from the side of the screen.

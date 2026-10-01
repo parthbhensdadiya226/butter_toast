@@ -22,7 +22,6 @@ class _ToastDemoAppState extends State<ToastDemoApp> {
     final toastTheme = ButterToastTheme(
       style: _style,
       position: _position,
-      bottomOffset: 80, // Keep toasts above the navigation bar.
       // The launcher icon on every toast, instead of the type icons.
       icon: _appIcon ? const ButterToastAppIcon() : null,
       typeIcons: !_appIcon,
@@ -82,8 +81,8 @@ class DemoPage extends StatefulWidget {
 }
 
 class _DemoPageState extends State<DemoPage> {
-  int _tab = 0;
   final _message = TextEditingController();
+  bool _acceptedTerms = false;
 
   @override
   void dispose() {
@@ -100,6 +99,31 @@ class _DemoPageState extends State<DemoPage> {
         error: (_) => "Couldn't upload your photos",
       );
     } catch (_) {}
+  }
+
+  void _deleteNote() {
+    ButterToast.show(
+      'Note deleted',
+      action: ButterToastAction(
+        'Undo',
+        onPressed: () => ButterToast.success('Note restored'),
+      ),
+      // Delete for real only if the toast left without Undo.
+      onDismiss: (reason) {
+        if (reason != ButterToastDismissReason.action) {
+          debugPrint('Note deleted for good ($reason)');
+        }
+      },
+    );
+  }
+
+  void _signUp() {
+    if (!_acceptedTerms) {
+      // Tapping again doesn't add more toasts; it keeps this one up.
+      ButterToast.error('Please accept the terms', tag: 'signup');
+      return;
+    }
+    ButterToast.success('Account created');
   }
 
   void _send() {
@@ -226,6 +250,62 @@ class _DemoPageState extends State<DemoPage> {
             ),
           ),
           _Section(
+            title: 'Buttons on toasts',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: _deleteNote,
+                  icon: const Icon(Icons.undo_rounded),
+                  label: const Text('Undo'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => ButterToast.error(
+                    "You're offline",
+                    duration: Duration.zero,
+                    tag: 'offline',
+                    action: ButterToastAction(
+                      'Retry',
+                      onPressed: () =>
+                          ButterToast.success('Back online', tag: 'offline'),
+                      // The success toast replaces this one through the tag.
+                      dismissOnPress: false,
+                    ),
+                  ),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Retry'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => ButterToast.info(
+                    'Stays until you close it',
+                    duration: Duration.zero,
+                    showCloseButton: true,
+                  ),
+                  icon: const Icon(Icons.close_rounded),
+                  label: const Text('Close button'),
+                ),
+              ],
+            ),
+          ),
+          _Section(
+            title: 'Sign-up form',
+            child: Row(
+              children: [
+                Checkbox(
+                  value: _acceptedTerms,
+                  onChanged: (value) {
+                    setState(() => _acceptedTerms = value ?? false);
+                    // The error is fixed, so take its toast away.
+                    if (_acceptedTerms) ButterToast.dismiss(tag: 'signup');
+                  },
+                ),
+                const Expanded(child: Text('I accept the terms')),
+                FilledButton(onPressed: _signUp, child: const Text('Sign up')),
+              ],
+            ),
+          ),
+          _Section(
             title: 'Real life',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,21 +385,6 @@ class _DemoPageState extends State<DemoPage> {
               'Swipe any toast in any direction to dismiss it.',
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(
-            icon: Icon(Icons.photo_library_outlined),
-            label: 'Photos',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
           ),
         ],
       ),

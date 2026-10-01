@@ -16,6 +16,8 @@ class ToastView extends StatelessWidget {
     required this.maxHeight,
     required this.textExpanded,
     required this.onToggleText,
+    this.onAction,
+    this.onClose,
   });
 
   /// What to show.
@@ -36,6 +38,13 @@ class ToastView extends StatelessWidget {
   /// Switches between the short and the full text.
   final VoidCallback onToggleText;
 
+  /// Called when the action button is pressed. The button shows when
+  /// [ToastData.action] is set.
+  final VoidCallback? onAction;
+
+  /// Called when the close button is pressed, or null for no close button.
+  final VoidCallback? onClose;
+
   bool get _pill => style == ButterToastStyle.pill;
 
   EdgeInsets get _padding => _pill
@@ -47,6 +56,8 @@ class ToastView extends StatelessWidget {
     final foreground = theme.foreground(style);
     final icon = _icon(foreground);
     final radius = BorderRadius.circular(_pill ? 22 : theme.cardBorderRadius);
+    final action = data.action;
+    final hasTrailing = action != null || onClose != null;
 
     return Container(
       // Cards share one width so a stack lines up; pills hug their text.
@@ -63,24 +74,47 @@ class ToastView extends StatelessWidget {
       padding: _padding,
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Buttons are taller than a line of text; centre the row on them.
+        crossAxisAlignment: hasTrailing
+            ? CrossAxisAlignment.center
+            : CrossAxisAlignment.start,
         children: [
           if (icon != null) ...[
             Padding(padding: const EdgeInsets.only(top: 1), child: icon),
             const SizedBox(width: 10),
           ],
           Flexible(
-            child: _ToastText(
-              data: data,
-              pill: _pill,
-              style: theme.textStyle.copyWith(color: foreground),
-              maxLines: theme.maxLines,
-              // The text may use whatever the padding leaves.
-              maxHeight: math.max(0, maxHeight - _padding.vertical),
-              expanded: textExpanded,
-              onToggle: onToggleText,
+            // A card is full width, so its text fills the row and pushes the
+            // buttons to the far edge. A pill hugs its text.
+            fit: _pill ? FlexFit.loose : FlexFit.tight,
+            // The toast's live region reads the text out as one label.
+            child: ExcludeSemantics(
+              child: _ToastText(
+                data: data,
+                pill: _pill,
+                style: theme.textStyle.copyWith(color: foreground),
+                maxLines: theme.maxLines,
+                // The text may use whatever the padding leaves.
+                maxHeight: math.max(0, maxHeight - _padding.vertical),
+                expanded: textExpanded,
+                onToggle: onToggleText,
+              ),
             ),
           ),
+          if (action != null) ...[
+            const SizedBox(width: 12),
+            _ActionButton(
+              label: action.label,
+              pill: _pill,
+              background: foreground,
+              foreground: theme.background(style),
+              onPressed: onAction,
+            ),
+          ],
+          if (onClose != null) ...[
+            SizedBox(width: action != null ? 4 : 8),
+            _CloseButton(color: foreground, onPressed: onClose!),
+          ],
         ],
       ),
     );
@@ -270,6 +304,99 @@ class _ToastText extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// The filled button of a toast's action, in the toast's colours swapped.
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.label,
+    required this.pill,
+    required this.background,
+    required this.foreground,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool pill;
+  final Color background;
+  final Color foreground;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      button: true,
+      label: label,
+      onTap: onPressed,
+      excludeSemantics: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onPressed,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(pill ? 14 : 7),
+            ),
+            child: Text(
+              label,
+              maxLines: 1,
+              style: DefaultTextStyle.of(context).style.copyWith(
+                color: foreground,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small "×" that dismisses the toast.
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.color, required this.onPressed});
+
+  final Color color;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      button: true,
+      // Not every app has Material localizations, such as a CupertinoApp.
+      label:
+          Localizations.of<MaterialLocalizations>(
+            context,
+            MaterialLocalizations,
+          )?.closeButtonTooltip ??
+          'Close',
+      onTap: onPressed,
+      excludeSemantics: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onPressed,
+          behavior: HitTestBehavior.opaque,
+          // A 28 px target around a 16 px icon.
+          child: SizedBox.square(
+            dimension: 28,
+            child: Icon(
+              Icons.close_rounded,
+              size: 16,
+              color: color.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

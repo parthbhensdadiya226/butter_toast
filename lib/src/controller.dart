@@ -82,6 +82,10 @@ class ButterToastController extends ChangeNotifier {
   /// Most toasts kept at one position. Older ones leave first.
   int maxToasts = 5;
 
+  /// Whether a toast identical to one on screen restarts that toast instead
+  /// of adding a copy.
+  bool mergeDuplicates = true;
+
   final List<ToastEntry> _entries = <ToastEntry>[];
   int _nextId = 1;
   bool _disposed = false;
@@ -105,6 +109,10 @@ class ButterToastController extends ChangeNotifier {
   /// toast in place. A toast identical to one already on screen at the same
   /// position isn't added again; the existing one restarts its timer
   /// instead. Both stop repeated taps from piling up toasts.
+  ///
+  /// Toasts with an action or `onDismiss` are never merged, since each one
+  /// has its own callbacks. Neither are any when [mergeDuplicates] (or the
+  /// toast's own theme) turns merging off.
   ButterToastHandle show(ToastData data) {
     final position = data.position ?? defaultPosition;
     // A toast keeps the position and style it was shown with, even if the
@@ -112,9 +120,11 @@ class ButterToastController extends ChangeNotifier {
     data = data.resolved(position, data.style ?? defaultStyle);
 
     final tag = data.tag;
+    final merge = data.theme?.mergeDuplicates ?? mergeDuplicates;
     for (final entry in _entries) {
       if (entry.dismissing) continue;
       if (tag != null && entry.data.tag == tag) {
+        _notifyDismiss(entry.data, ButterToastDismissReason.replaced);
         entry
           ..data = data.resolved(positionOf(entry), data.style!)
           ..version += 1;
@@ -123,6 +133,7 @@ class ButterToastController extends ChangeNotifier {
         return handleOf(entry.id);
       }
       if (tag == null &&
+          merge &&
           positionOf(entry) == position &&
           entry.data.sameContentAs(data)) {
         _restartTimer(entry);
@@ -139,7 +150,7 @@ class ButterToastController extends ChangeNotifier {
     ];
     final limit = position.isCenter ? 1 : maxToasts;
     for (var i = 0; i < live.length - limit; i++) {
-      _markDismissing(live[i]);
+      _markDismissing(live[i], ButterToastDismissReason.limit);
     }
 
     _restartTimer(entry);
@@ -169,20 +180,30 @@ class ButterToastController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Animates the toast with [id] away.
-  void dismiss(int id) {
+  /// Animates the toast with [id] away. [reason] is passed to its
+  /// `onDismiss`.
+  void dismiss(
+    int id, [
+    ButterToastDismissReason reason = ButterToastDismissReason.programmatic,
+  ]) {
     final entry = _find(id);
     if (entry == null || entry.dismissing) return;
-    _markDismissing(entry);
+    _markDismissing(entry, reason);
     notifyListeners();
   }
 
+  /// Animates away every toast with [tag].
+  void dismissTag(String tag) =>
+      _dismissWhere((entry) => entry.data.tag == tag);
+
   /// Animates every toast away.
-  void dismissAll() {
+  void dismissAll() => _dismissWhere((_) => true);
+
+  void _dismissWhere(bool Function(ToastEntry entry) test) {
     var changed = false;
     for (final entry in _entries) {
-      if (!entry.dismissing) {
-        _markDismissing(entry);
+      if (!entry.dismissing && test(entry)) {
+        _markDismissing(entry, ButterToastDismissReason.programmatic);
         changed = true;
       }
     }
@@ -229,11 +250,19 @@ class ButterToastController extends ChangeNotifier {
     return null;
   }
 
-  void _markDismissing(ToastEntry entry) {
+  void _markDismissing(ToastEntry entry, ButterToastDismissReason reason) {
     entry
       ..dismissing = true
       .._timer?.cancel()
       .._timer = null;
+    _notifyDismiss(entry.data, reason);
+  }
+
+  // Called after the current change, so a callback that shows another toast
+  // doesn't change the list while it's being walked.
+  void _notifyDismiss(ToastData data, ButterToastDismissReason reason) {
+    final onDismiss = data.onDismiss;
+    if (onDismiss != null) scheduleMicrotask(() => onDismiss(reason));
   }
 
   void _restartTimer(ToastEntry entry) {
@@ -253,7 +282,10 @@ class ButterToastController extends ChangeNotifier {
     entry._running
       ..reset()
       ..start();
-    entry._timer = Timer(entry._remaining, () => dismiss(entry.id));
+    entry._timer = Timer(
+      entry._remaining,
+      () => dismiss(entry.id, ButterToastDismissReason.timeout),
+    );
   }
 
   @override

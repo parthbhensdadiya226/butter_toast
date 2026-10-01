@@ -131,6 +131,26 @@ class _ToastItemState extends State<ToastItem> with TickerProviderStateMixin {
     }
   }
 
+  void _pressAction() {
+    final action = widget.entry.data.action;
+    if (action == null || _exiting) return;
+    action.onPressed();
+    if (action.dismissOnPress) {
+      widget.controller.dismiss(
+        widget.entry.id,
+        ButterToastDismissReason.action,
+      );
+    }
+  }
+
+  void _pressClose() {
+    if (_exiting) return;
+    widget.controller.dismiss(
+      widget.entry.id,
+      ButterToastDismissReason.closeButton,
+    );
+  }
+
   void _dragStart(DragStartDetails _) {
     if (_exiting) return;
     _dx.stop();
@@ -159,7 +179,12 @@ class _ToastItemState extends State<ToastItem> with TickerProviderStateMixin {
     final fastEnough = velocity.distance > 800;
 
     if (farEnough || fastEnough) {
+      // Set first, so the controller's change doesn't start the usual exit.
       _exiting = true;
+      widget.controller.dismiss(
+        widget.entry.id,
+        ButterToastDismissReason.swipe,
+      );
       // Fly out the way it was thrown, or the way it was dragged.
       final direction = fastEnough
           ? velocity / velocity.distance
@@ -198,6 +223,10 @@ class _ToastItemState extends State<ToastItem> with TickerProviderStateMixin {
             maxHeight: widget.maxHeight,
             textExpanded: _textExpanded,
             onToggleText: _toggleText,
+            onAction: data.action == null ? null : _pressAction,
+            onClose: (data.showCloseButton ?? widget.theme.showCloseButton)
+                ? _pressClose
+                : null,
           );
 
     // An update (such as loading -> success) morphs in place.
@@ -215,7 +244,20 @@ class _ToastItemState extends State<ToastItem> with TickerProviderStateMixin {
       ),
     );
 
-    view = Semantics(liveRegion: true, container: true, child: view);
+    // A live region is read out when it appears and whenever its label
+    // changes: by TalkBack on Android and VoiceOver on iOS. iOS reads only
+    // the label of the live region itself, so the text goes there.
+    final description = data.description;
+    view = Semantics(
+      liveRegion: true,
+      container: true,
+      label: builder != null
+          ? null
+          : description == null
+          ? data.message
+          : '${data.message}\n$description',
+      child: view,
+    );
 
     final swipe = data.dismissible && !_exiting;
     view = MouseRegion(

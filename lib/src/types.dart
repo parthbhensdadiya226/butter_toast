@@ -95,6 +95,51 @@ enum ButterToastPosition {
   };
 }
 
+/// Why a toast left the screen. Passed to `onDismiss`.
+enum ButterToastDismissReason {
+  /// Its duration ran out.
+  timeout,
+
+  /// It was swiped away.
+  swipe,
+
+  /// Its action button was pressed.
+  action,
+
+  /// Its close button was pressed.
+  closeButton,
+
+  /// The code dismissed it: `handle.dismiss()`, `ButterToast.dismiss` or
+  /// `ButterToast.dismissAll`.
+  programmatic,
+
+  /// A new toast with the same tag took its place.
+  replaced,
+
+  /// Too many toasts at its position, so the oldest left.
+  limit,
+}
+
+/// A button on a toast, such as "Undo" or "Retry".
+@immutable
+class ButterToastAction {
+  /// Creates an action button showing [label] that calls [onPressed].
+  const ButterToastAction(
+    this.label, {
+    required this.onPressed,
+    this.dismissOnPress = true,
+  });
+
+  /// Text on the button. Keep it to a word or two.
+  final String label;
+
+  /// Called when the button is pressed.
+  final VoidCallback onPressed;
+
+  /// Whether pressing the button also dismisses the toast. True unless set.
+  final bool dismissOnPress;
+}
+
 /// Builds a fully custom toast. The package still handles the motion,
 /// stacking, timing, swiping and the safe area around it.
 typedef ButterToastBuilder =
@@ -118,6 +163,9 @@ class ToastData {
     this.tag,
     this.showIcon = true,
     this.theme,
+    this.action,
+    this.onDismiss,
+    this.showCloseButton,
   });
 
   /// The main text. In a card this is the title.
@@ -161,10 +209,25 @@ class ToastData {
   /// Theme for this toast only, laid over the app's toast theme.
   final ButterToastTheme? theme;
 
+  /// Button shown on the toast, such as "Undo".
+  final ButterToastAction? action;
+
+  /// Called once when the toast starts to leave, with the reason.
+  final ValueChanged<ButterToastDismissReason>? onDismiss;
+
+  /// Whether to show a close button, or null for the theme's setting.
+  final bool? showCloseButton;
+
+  /// Whether this toast carries callbacks that a merged copy would lose.
+  bool get hasCallbacks => action != null || onDismiss != null;
+
   /// Whether [other] would show the same thing, so it can be merged.
   bool sameContentAs(ToastData other) =>
       builder == null &&
       other.builder == null &&
+      !hasCallbacks &&
+      !other.hasCallbacks &&
+      showCloseButton == other.showCloseButton &&
       message == other.message &&
       description == other.description &&
       type == other.type &&
@@ -209,5 +272,8 @@ class ToastData {
     tag: tag,
     showIcon: showIcon,
     theme: theme,
+    action: action,
+    onDismiss: onDismiss,
+    showCloseButton: showCloseButton,
   );
 }

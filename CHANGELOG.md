@@ -1,3 +1,21 @@
+## 0.2.0
+
+* **Action buttons:** `action: ButterToastAction('Undo', onPressed: ...)` adds
+  a button to a toast. Pressing it dismisses the toast unless
+  `dismissOnPress` is false. Works on loading toasts too, for a Cancel.
+* **`onDismiss`** is called once when a toast starts to leave, with a
+  `ButterToastDismissReason`: `timeout`, `swipe`, `action`, `closeButton`,
+  `programmatic`, `replaced` or `limit`.
+* **Close button:** `showCloseButton: true` on a toast, or
+  `ButterToastTheme(showCloseButton: true)` for all of them.
+* **`ButterToast.dismiss(tag: ...)`** dismisses toasts by their tag.
+* **`ButterToastTheme.mergeDuplicates`:** set it to false to let identical
+  toasts show side by side. Toasts with an action or `onDismiss` are never
+  merged, since each has its own callbacks.
+* **VoiceOver reads toasts on iOS.** The toast's live region now carries its
+  text as its label, which iOS needs in order to announce it. Buttons on a
+  toast stay separate, focusable elements.
+
 ## 0.1.0
 
 * 🎉 Initial release.

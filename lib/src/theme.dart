@@ -39,6 +39,8 @@ class ButterToastTheme extends ThemeExtension<ButterToastTheme> {
     this.shadows,
     this.icon,
     this.typeIcons,
+    this.showCloseButton,
+    this.mergeDuplicates,
   });
 
   /// Default look: [ButterToastStyle.pill] unless set.
@@ -122,6 +124,14 @@ class ButterToastTheme extends ThemeExtension<ButterToastTheme> {
   /// Set to false to show [icon] on every toast instead. True unless set.
   final bool? typeIcons;
 
+  /// Whether toasts show a close button. False unless set. Useful on
+  /// desktop and the web, where swiping isn't natural.
+  final bool? showCloseButton;
+
+  /// Whether a toast identical to one already on screen restarts that toast
+  /// instead of adding a copy. True unless set.
+  final bool? mergeDuplicates;
+
   /// Fields of this theme, with the null ones taken from [other].
   ButterToastTheme merge(ButterToastTheme? other) {
     if (other == null) return this;
@@ -151,6 +161,8 @@ class ButterToastTheme extends ThemeExtension<ButterToastTheme> {
       shadows: shadows ?? other.shadows,
       icon: icon ?? other.icon,
       typeIcons: typeIcons ?? other.typeIcons,
+      showCloseButton: showCloseButton ?? other.showCloseButton,
+      mergeDuplicates: mergeDuplicates ?? other.mergeDuplicates,
     );
   }
 
@@ -181,6 +193,8 @@ class ButterToastTheme extends ThemeExtension<ButterToastTheme> {
     List<BoxShadow>? shadows,
     Widget? icon,
     bool? typeIcons,
+    bool? showCloseButton,
+    bool? mergeDuplicates,
   }) => ButterToastTheme(
     style: style ?? this.style,
     position: position ?? this.position,
@@ -207,6 +221,8 @@ class ButterToastTheme extends ThemeExtension<ButterToastTheme> {
     shadows: shadows ?? this.shadows,
     icon: icon ?? this.icon,
     typeIcons: typeIcons ?? this.typeIcons,
+    showCloseButton: showCloseButton ?? this.showCloseButton,
+    mergeDuplicates: mergeDuplicates ?? this.mergeDuplicates,
   );
 
   @override
@@ -251,6 +267,8 @@ class ButterToastTheme extends ThemeExtension<ButterToastTheme> {
       shadows: BoxShadow.lerpList(shadows, other.shadows, t),
       icon: pick(icon, other.icon),
       typeIcons: pick(typeIcons, other.typeIcons),
+      showCloseButton: pick(showCloseButton, other.showCloseButton),
+      mergeDuplicates: pick(mergeDuplicates, other.mergeDuplicates),
     );
   }
 }
@@ -407,6 +425,12 @@ class ResolvedToastTheme {
 
   /// Whether typed toasts keep their own icons.
   bool get typeIcons => _source.typeIcons ?? true;
+
+  /// Whether toasts show a close button.
+  bool get showCloseButton => _source.showCloseButton ?? false;
+
+  /// Whether identical toasts merge.
+  bool get mergeDuplicates => _source.mergeDuplicates ?? true;
 
   /// Background for [style].
   Color background(ButterToastStyle style) =>

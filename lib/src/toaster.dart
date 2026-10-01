@@ -54,6 +54,11 @@ abstract final class ButterToast {
   /// makes the toast replace any toast on screen with the same tag, so
   /// repeated taps update one toast instead of adding more.
   ///
+  /// [action] adds a button such as "Undo"; pressing it calls its
+  /// `onPressed` and dismisses the toast. [onDismiss] is called once when
+  /// the toast starts to leave, with the reason. [showCloseButton] adds a
+  /// close button, overriding the theme.
+  ///
   /// [theme] styles this toast only. It is laid over the app's toast theme,
   /// so set just the fields you want to change. Its colours, text, shadows,
   /// icon, `maxLines`, `style`, `position` and `duration` apply; layout of
@@ -71,6 +76,9 @@ abstract final class ButterToast {
     String? tag,
     bool showIcon = true,
     ButterToastTheme? theme,
+    ButterToastAction? action,
+    ValueChanged<ButterToastDismissReason>? onDismiss,
+    bool? showCloseButton,
   }) => _controller.show(
     ToastData(
       message: message,
@@ -85,6 +93,9 @@ abstract final class ButterToast {
       tag: tag,
       showIcon: showIcon,
       theme: theme,
+      action: action,
+      onDismiss: onDismiss,
+      showCloseButton: showCloseButton,
     ),
   );
 
@@ -101,6 +112,9 @@ abstract final class ButterToast {
     String? tag,
     bool showIcon = true,
     ButterToastTheme? theme,
+    ButterToastAction? action,
+    ValueChanged<ButterToastDismissReason>? onDismiss,
+    bool? showCloseButton,
   }) => show(
     message,
     description: description,
@@ -114,6 +128,9 @@ abstract final class ButterToast {
     tag: tag,
     showIcon: showIcon,
     theme: theme,
+    action: action,
+    onDismiss: onDismiss,
+    showCloseButton: showCloseButton,
   );
 
   /// Shows a [ButterToastType.error] toast. See [show].
@@ -129,6 +146,9 @@ abstract final class ButterToast {
     String? tag,
     bool showIcon = true,
     ButterToastTheme? theme,
+    ButterToastAction? action,
+    ValueChanged<ButterToastDismissReason>? onDismiss,
+    bool? showCloseButton,
   }) => show(
     message,
     description: description,
@@ -142,6 +162,9 @@ abstract final class ButterToast {
     tag: tag,
     showIcon: showIcon,
     theme: theme,
+    action: action,
+    onDismiss: onDismiss,
+    showCloseButton: showCloseButton,
   );
 
   /// Shows a [ButterToastType.warning] toast. See [show].
@@ -157,6 +180,9 @@ abstract final class ButterToast {
     String? tag,
     bool showIcon = true,
     ButterToastTheme? theme,
+    ButterToastAction? action,
+    ValueChanged<ButterToastDismissReason>? onDismiss,
+    bool? showCloseButton,
   }) => show(
     message,
     description: description,
@@ -170,6 +196,9 @@ abstract final class ButterToast {
     tag: tag,
     showIcon: showIcon,
     theme: theme,
+    action: action,
+    onDismiss: onDismiss,
+    showCloseButton: showCloseButton,
   );
 
   /// Shows a [ButterToastType.info] toast. See [show].
@@ -185,6 +214,9 @@ abstract final class ButterToast {
     String? tag,
     bool showIcon = true,
     ButterToastTheme? theme,
+    ButterToastAction? action,
+    ValueChanged<ButterToastDismissReason>? onDismiss,
+    bool? showCloseButton,
   }) => show(
     message,
     description: description,
@@ -198,10 +230,14 @@ abstract final class ButterToast {
     tag: tag,
     showIcon: showIcon,
     theme: theme,
+    action: action,
+    onDismiss: onDismiss,
+    showCloseButton: showCloseButton,
   );
 
   /// Shows a [ButterToastType.loading] toast with a spinner. It stays until
-  /// you call `update` or `dismiss` on the returned handle.
+  /// you call `update` or `dismiss` on the returned handle. An [action]
+  /// such as "Cancel" can stop the work.
   static ButterToastHandle loading(
     String message, {
     String? description,
@@ -211,6 +247,9 @@ abstract final class ButterToast {
     String? tag,
     bool showIcon = true,
     ButterToastTheme? theme,
+    ButterToastAction? action,
+    ValueChanged<ButterToastDismissReason>? onDismiss,
+    bool? showCloseButton,
   }) => show(
     message,
     description: description,
@@ -221,6 +260,9 @@ abstract final class ButterToast {
     tag: tag,
     showIcon: showIcon,
     theme: theme,
+    action: action,
+    onDismiss: onDismiss,
+    showCloseButton: showCloseButton,
   );
 
   /// Shows a loading toast while [future] runs, then turns it into a
@@ -273,6 +315,7 @@ abstract final class ButterToast {
     VoidCallback? onTap,
     bool dismissible = true,
     String? tag,
+    ValueChanged<ButterToastDismissReason>? onDismiss,
   }) => _controller.show(
     ToastData(
       message: '',
@@ -282,8 +325,13 @@ abstract final class ButterToast {
       onTap: onTap,
       dismissible: dismissible,
       tag: tag,
+      onDismiss: onDismiss,
     ),
   );
+
+  /// Animates away every toast shown with [tag], for example a form's error
+  /// toast once the user has fixed the field.
+  static void dismiss({required String tag}) => _controller.dismissTag(tag);
 
   /// Animates every toast away.
   static void dismissAll() => _controller.dismissAll();
@@ -358,7 +406,8 @@ class _ButterToasterState extends State<ButterToaster> {
       ..defaultDuration = theme.duration
       ..defaultPosition = theme.position
       ..defaultStyle = theme.style
-      ..maxToasts = theme.maxToasts;
+      ..maxToasts = theme.maxToasts
+      ..mergeDuplicates = theme.mergeDuplicates;
     if (_controller.entries.isEmpty) return const SizedBox.shrink();
 
     final mq = MediaQuery.of(context);

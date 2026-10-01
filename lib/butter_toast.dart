@@ -9,7 +9,9 @@ export 'src/theme.dart' show ButterToastTheme;
 export 'src/toaster.dart' show ButterToast, ButterToaster;
 export 'src/types.dart'
     show
+        ButterToastAction,
         ButterToastBuilder,
+        ButterToastDismissReason,
         ButterToastPosition,
         ButterToastStyle,
         ButterToastType;

@@ -1,6 +1,25 @@
 import 'package:butter_toast/butter_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+/// The semantics node labelled [label], if any. Needs
+/// `tester.ensureSemantics()`.
+SemanticsNode? _semanticsLabelled(WidgetTester tester, String label) {
+  SemanticsNode? found;
+  bool visit(SemanticsNode node) {
+    if (node.label == label) found = node;
+    node.visitChildren(visit);
+    return found == null;
+  }
+
+  var root = tester.getSemantics(find.byType(Scaffold));
+  while (root.parent != null) {
+    root = root.parent!;
+  }
+  visit(root);
+  return found;
+}
 
 Widget _app({ButterToastTheme? theme}) => MaterialApp(
   builder: ButterToast.init(theme: theme),
@@ -403,5 +422,232 @@ void main() {
     expect(merged.margin, 20);
     expect(merged.style, ButterToastStyle.card);
     expect(a.lerp(b, 0.5).maxWidth, 400);
+  });
+
+  group('actions, dismiss reasons and close button', () {
+    testWidgets('an action button runs its callback and dismisses', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app());
+      var undone = 0;
+      var tapped = 0;
+      final reasons = <ButterToastDismissReason>[];
+      ButterToast.show(
+        'Message deleted',
+        onTap: () => tapped++,
+        action: ButterToastAction('Undo', onPressed: () => undone++),
+        onDismiss: reasons.add,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Undo'), findsOneWidget);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(undone, 1);
+      expect(tapped, 0, reason: 'the button tap must not reach the toast');
+      expect(reasons, [ButterToastDismissReason.action]);
+      expect(find.text('Message deleted'), findsNothing);
+    });
+
+    testWidgets('an action can leave the toast on screen', (tester) async {
+      await tester.pumpWidget(_app());
+      var retries = 0;
+      ButterToast.error(
+        'Offline',
+        duration: Duration.zero,
+        action: ButterToastAction(
+          'Retry',
+          onPressed: () => retries++,
+          dismissOnPress: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Retry'));
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(retries, 2);
+      expect(find.text('Offline'), findsOneWidget);
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('onDismiss reports why, once', (tester) async {
+      await tester.pumpWidget(
+        _app(theme: const ButterToastTheme(maxToasts: 1)),
+      );
+      final reasons = <String, List<ButterToastDismissReason>>{};
+      ValueChanged<ButterToastDismissReason> log(String name) =>
+          (r) => (reasons[name] ??= []).add(r);
+
+      ButterToast.show(
+        'Timed',
+        duration: const Duration(seconds: 1),
+        onDismiss: log('timeout'),
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      final handle = ButterToast.show('Code', onDismiss: log('code'));
+      await tester.pumpAndSettle();
+      handle.dismiss();
+      handle.dismiss();
+      await tester.pumpAndSettle();
+
+      ButterToast.show('Swiped', onDismiss: log('swipe'));
+      await tester.pumpAndSettle();
+      await tester.fling(find.text('Swiped'), const Offset(0, 200), 1500);
+      await tester.pumpAndSettle();
+
+      ButterToast.show('Old', tag: 't', onDismiss: log('replaced'));
+      ButterToast.show('New', tag: 't');
+      await tester.pumpAndSettle();
+
+      // maxToasts is 1, so a second toast pushes the first one out.
+      ButterToast.show('First', onDismiss: log('limit'));
+      ButterToast.show('Second');
+      await tester.pumpAndSettle();
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+
+      expect(reasons, {
+        'timeout': [ButterToastDismissReason.timeout],
+        'code': [ButterToastDismissReason.programmatic],
+        'swipe': [ButterToastDismissReason.swipe],
+        'replaced': [ButterToastDismissReason.replaced],
+        'limit': [ButterToastDismissReason.limit],
+      });
+    });
+
+    testWidgets('onDismiss may show another toast', (tester) async {
+      await tester.pumpWidget(_app());
+      ButterToast.show(
+        'Deleted',
+        onDismiss: (_) => ButterToast.show('Gone for good'),
+      );
+      ButterToast.show('Other');
+      await tester.pumpAndSettle();
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Gone for good'), findsOneWidget);
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('close button: off by default, per toast or from the theme', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(_app());
+      ButterToast.show('Plain', duration: Duration.zero);
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+
+      final reasons = <ButterToastDismissReason>[];
+      ButterToast.show(
+        'Closable',
+        showCloseButton: true,
+        onDismiss: reasons.add,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(_semanticsLabelled(tester, 'Close'), isNotNull);
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('Closable'), findsNothing);
+      expect(reasons, [ButterToastDismissReason.closeButton]);
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(
+        _app(theme: const ButterToastTheme(showCloseButton: true)),
+      );
+      ButterToast.show('Themed');
+      ButterToast.show('Opted out', showCloseButton: false);
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+      semantics.dispose();
+    });
+
+    testWidgets('dismiss by tag leaves other toasts', (tester) async {
+      await tester.pumpWidget(_app());
+      ButterToast.error('Accept the terms', tag: 'signup');
+      ButterToast.info('Welcome', duration: Duration.zero);
+      await tester.pumpAndSettle();
+      ButterToast.dismiss(tag: 'signup');
+      await tester.pumpAndSettle();
+      expect(find.text('Accept the terms'), findsNothing);
+      expect(find.text('Welcome'), findsOneWidget);
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('merging can be turned off, app-wide or per toast', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(theme: const ButterToastTheme(mergeDuplicates: false)),
+      );
+      ButterToast.show('+1');
+      ButterToast.show('+1');
+      await tester.pumpAndSettle();
+      expect(find.text('+1'), findsNWidgets(2));
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(_app());
+      const noMerge = ButterToastTheme(mergeDuplicates: false);
+      ButterToast.show('Ping', theme: noMerge);
+      ButterToast.show('Ping', theme: noMerge);
+      await tester.pumpAndSettle();
+      expect(find.text('Ping'), findsNWidgets(2));
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('toasts with their own callbacks are never merged', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app());
+      for (final name in ['a.txt', 'b.txt']) {
+        ButterToast.show(
+          'File deleted',
+          action: ButterToastAction('Undo', onPressed: () => name),
+        );
+      }
+      await tester.pumpAndSettle();
+      expect(find.text('File deleted'), findsNWidgets(2));
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('the live region carries the text, so iOS can read it', (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(_app());
+      final handle = ButterToast.show(
+        'Payment received',
+        description: 'From Sam',
+        duration: Duration.zero,
+        action: ButterToastAction('View', onPressed: () {}),
+      );
+      await tester.pumpAndSettle();
+      final node = _semanticsLabelled(tester, 'Payment received\nFrom Sam');
+      expect(node, isNotNull);
+      expect(node!.getSemanticsData().flagsCollection.isLiveRegion, isTrue);
+      // The text isn't read twice, and the button is reachable on its own.
+      expect(_semanticsLabelled(tester, 'Payment received'), isNull);
+      expect(_semanticsLabelled(tester, 'View'), isNotNull);
+
+      handle.update(message: 'Refunded', description: 'To Sam');
+      await tester.pumpAndSettle();
+      expect(_semanticsLabelled(tester, 'Refunded\nTo Sam'), isNotNull);
+      ButterToast.dismissAll();
+      await tester.pumpAndSettle();
+      semantics.dispose();
+    });
   });
 }

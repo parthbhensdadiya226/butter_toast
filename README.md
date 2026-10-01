@@ -13,9 +13,13 @@ dismiss. No `BuildContext` needed.
 [![pub points](https://img.shields.io/pub/points/butter_toast)](https://pub.dev/packages/butter_toast/score)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/hero.gif" width="280" alt="Card toasts stacking, spreading out and swiping away">
+<img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/hero.gif" width="280" alt="Card toasts with Retry and Undo buttons stacking, spreading out and one swiped away">
 
 </div>
+
+> **New in 0.2.0:** Undo / Retry buttons on toasts, a close **×**,
+> `onDismiss` with the reason, and dismiss by tag.
+> [See the changelog →](CHANGELOG.md)
 
 ---
 
@@ -27,6 +31,7 @@ dismiss. No `BuildContext` needed.
 - [Showing toasts: `show` and the shortcuts](#-showing-toasts-show-and-the-shortcuts)
 - [All parameters](#-all-parameters)
 - [Updating and dismissing a toast](#-updating-and-dismissing-a-toast)
+- [Action buttons, close button and onDismiss](#-action-buttons-close-button-and-ondismiss)
 - [Promise toasts](#-promise-toasts)
 - [Positions](#-positions)
 - [Pill or card](#-pill-or-card)
@@ -58,10 +63,11 @@ butter_toast draws a real **toast**: small, light, and out of your way.
 | ⌨️ **Keyboard and safe area aware** | Stays clear of the notch, home indicator and keyboard |
 | 🪟 **Above everything** | Shows over dialogs and bottom sheets |
 | 🖼️ **Your app icon** | Show the real launcher icon on toasts, read at run time, no asset needed |
-| 🧹 **No pile-ups** | Repeated taps merge into one toast; a `tag` updates a toast in place |
+| 🔘 **Action buttons** | **Undo**, **Retry** or **Cancel** on a toast, an optional close **×**, and `onDismiss` tells you why it left |
+| 🧹 **No pile-ups** | Tap a button 10 times, see **1** toast; a `tag` updates a toast in place |
 | 🧵 **No context needed** | Call it from blocs, services or a Dio interceptor |
 | 🎨 **Themeable** | App-wide with a `ThemeExtension`, or per toast with `theme:` |
-| ♿ **Accessible** | Screen readers announce toasts; reduced motion fades instead of sliding |
+| ♿ **Accessible** | TalkBack and VoiceOver read toasts out; reduced motion fades instead of sliding |
 | 📦 **Zero dependencies** | Only the Flutter SDK |
 
 ## 🎬 See it move
@@ -74,13 +80,17 @@ butter_toast draws a real **toast**: small, light, and out of your way.
 |:---:|:---:|:---:|
 | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/pill.png" width="220" alt="Pill toast"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/card.png" width="220" alt="Card toast with description"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/long.png" width="220" alt="Long message collapsed behind Show more"> |
 
+| Undo, Retry and close **×** | 5 taps, 1 toast |
+|:---:|:---:|
+| <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/actions.png" width="220" alt="Three card toasts: one with a close button, one with Retry and one with Undo"> | <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/signup.gif" width="250" alt="Tapping Sign up five times shows one toast, which goes away when the terms box is ticked"> |
+
 ## 🚀 Quick start
 
 **1. Add the package**
 
 ```yaml
 dependencies:
-  butter_toast: ^0.1.0
+  butter_toast: ^0.2.0
 ```
 
 **2. Add the toast layer to your app, once**
@@ -173,6 +183,9 @@ ButterToast.show(
   dismissible: true,                         // false turns off swiping
   tag: 'payment',                            // same tag updates this toast
   theme: const ButterToastTheme(...),        // style for this toast only
+  action: ButterToastAction('View', onPressed: openPayments), // a button
+  onDismiss: (reason) => log(reason),        // called once when it leaves
+  showCloseButton: true,                     // a close ×
 );
 ```
 
@@ -190,6 +203,9 @@ ButterToast.show(
 | `dismissible` | `bool` | `true` (`false` for `loading`) | Whether it can be swiped away. |
 | `tag` | `String?` | none | A toast with the same tag replaces this one in place. |
 | `theme` | `ButterToastTheme?` | none | Theme for this toast only. See [Per toast](#per-toast). |
+| `action` | `ButterToastAction?` | none | A button such as "Undo". See [Action buttons](#-action-buttons-close-button-and-ondismiss). |
+| `onDismiss` | `ValueChanged<ButterToastDismissReason>?` | none | Called once when the toast starts to leave, with the reason. |
+| `showCloseButton` | `bool?` | theme (`false`) | Shows a close **×**. |
 
 ## 🔄 Updating and dismissing a toast
 
@@ -207,8 +223,88 @@ toast.isActive; // false once it has left the screen
 ```
 
 `update` morphs the same toast smoothly, and restarts its timer when it
-turns from `loading` into anything else. To clear the screen, call
-`ButterToast.dismissAll()`.
+turns from `loading` into anything else.
+
+No handle at hand? Dismiss by tag, or clear the screen:
+
+```dart
+ButterToast.dismiss(tag: 'signup'); // every toast shown with this tag
+ButterToast.dismissAll();           // every toast
+```
+
+## 🔘 Action buttons, close button and onDismiss
+
+### Action button
+
+Give a toast one button, such as **Undo** or **Retry**:
+
+```dart
+ButterToast.show(
+  'Message deleted',
+  action: ButterToastAction('Undo', onPressed: () => restore(message)),
+);
+```
+
+Pressing it calls `onPressed` and dismisses the toast. To keep the toast on
+screen, pass `dismissOnPress: false`. The button uses the toast's colours,
+swapped: dark on a light card, light on a dark pill.
+
+A loading toast can carry one too, for example to stop an upload:
+
+```dart
+final upload = ButterToast.loading(
+  'Uploading video…',
+  action: ButterToastAction('Cancel', onPressed: task.cancel),
+);
+```
+
+### Close button
+
+Phones can swipe toasts away, but on desktop and the web a close **×** is
+easier to find. Turn it on for one toast, or for all of them in the theme:
+
+```dart
+ButterToast.info(
+  'Stays until you close it',
+  duration: Duration.zero,
+  showCloseButton: true,
+);
+
+ButterToastTheme(showCloseButton: true) // every toast
+```
+
+`showCloseButton: false` on a call hides it again for that toast.
+
+### onDismiss: know why a toast left
+
+`onDismiss` is called **once**, as the toast starts to leave, with a
+`ButterToastDismissReason`:
+
+| Reason | When |
+|---|---|
+| `timeout` | Its duration ran out |
+| `swipe` | Someone swiped it away |
+| `action` | Its action button was pressed |
+| `closeButton` | Its close **×** was pressed |
+| `programmatic` | Your code dismissed it: `handle.dismiss()`, `ButterToast.dismiss(tag:)` or `dismissAll()` |
+| `replaced` | A new toast with the same `tag` took its place |
+| `limit` | Too many toasts at its position, so the oldest left |
+
+That makes the classic **"delete with Undo"** easy. Hide the item right
+away, and only delete it for real if the toast leaves without Undo:
+
+```dart
+void delete(Note note) {
+  notes.hide(note);
+  ButterToast.show(
+    'Note deleted',
+    action: ButterToastAction('Undo', onPressed: () => notes.show(note)),
+    onDismiss: (reason) {
+      if (reason != ButterToastDismissReason.action) notes.delete(note);
+    },
+  );
+}
+```
 
 ## ⏳ Promise toasts
 
@@ -273,16 +369,79 @@ can be swiped on its own, including the ones in the middle. Pass
 
 ## 🧹 Repeated taps and tags
 
-Showing a toast identical to one already on screen restarts that toast
-instead of adding a copy, so a button tapped five times shows one toast.
+A sign-up button that warns about the terms is a good example. The user
+taps **Sign up** ten times without ticking the box:
 
-For toasts whose text changes, give them a `tag`. A new toast with the same
-tag **updates the existing one in place**:
+```dart
+void signUp() {
+  if (!acceptedTerms) {
+    ButterToast.error('Please accept the terms');
+    return;
+  }
+  // …
+}
+```
+
+With the native toast you'd get ten toasts in a queue, one after another.
+With butter_toast you get **one**, and no `tag` is needed:
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/signup.gif" width="300" alt="Tapping Sign up five times shows one toast, which goes away when the terms box is ticked">
+</p>
+
+1. Before adding a toast, butter_toast looks at the toasts on screen.
+2. If one at the same position shows the **same thing** (same message,
+   description, type, style and theme), no copy is added.
+3. That toast's timer **starts again** instead, so it stays up while the
+   user keeps tapping and leaves a few seconds after the **last** tap.
+
+### When you need a tag
+
+Content matching only works when the text is the same. When the message
+changes, for example a form that checks one field after another, give the
+toasts a `tag`. A new toast with the same tag **replaces the one on screen
+in place**, with a smooth morph:
+
+```dart
+ButterToast.error('Enter your email', tag: 'signup');
+ButterToast.error('Please accept the terms', tag: 'signup'); // same toast
+```
+
+Once the user fixes the problem, take the toast away by its tag:
+
+```dart
+onChanged: (accepted) {
+  if (accepted) ButterToast.dismiss(tag: 'signup');
+}
+```
+
+The same works for progress:
 
 ```dart
 ButterToast.loading('Saving…', tag: 'save');
-// later, or on the next tap:
 ButterToast.success('Saved', tag: 'save'); // same toast, now a success
+```
+
+| Situation | Tag needed? |
+|---|---|
+| The same message, tapped many times | ❌ No, it's automatic |
+| Different messages from one form or button | ✅ Yes, one toast whose text changes |
+| Removing a toast without keeping its handle | ✅ Yes, `ButterToast.dismiss(tag: …)` |
+| Loading → done | Either a tag, or `handle.update()` |
+
+### What never merges
+
+- Toasts with an `action` or `onDismiss`, because each one has its own
+  callbacks. Two "File deleted · Undo" toasts must each undo their own file.
+- Anything at all, once you turn merging off. Some apps want every tap to
+  show, like a "+1" counter:
+
+```dart
+// App-wide
+ButterToastTheme(mergeDuplicates: false)
+
+// Or for one kind of toast
+ButterToast.show('+1', theme: const ButterToastTheme(mergeDuplicates: false));
 ```
 
 ## 🖼️ Icons and the app icon
@@ -406,7 +565,8 @@ Keep the theme in a `const` and reuse it on every toast of that screen.
 Only the toasts you pass it to change; other toasts keep the app look.
 
 A per-toast theme applies its colours, text style, shadows, radius, icons,
-`maxLines`, `style`, `position` and `duration`. Settings that shape the
+`maxLines`, `style`, `position`, `duration`, `showCloseButton` and
+`mergeDuplicates`. Settings that shape the
 whole stack at a position (`margin`, `maxWidth`, `gap`, `bottomOffset`,
 `visibleCount`, `maxToasts`, `maxHeightFraction`) stay app-wide.
 
@@ -443,6 +603,8 @@ From strongest to weakest:
 | `shadows` | soft shadow | Shadows under toasts |
 | `icon` | none | Icon for plain toasts, e.g. `ButterToastAppIcon()` |
 | `typeIcons` | `true` | `false` shows `icon` on every toast instead of type icons |
+| `showCloseButton` | `false` | Shows a close **×** on toasts |
+| `mergeDuplicates` | `true` | `false` lets identical toasts show side by side |
 
 </details>
 
@@ -499,6 +661,7 @@ ButterToast.custom(
 | `toastLength: Toast.LENGTH_SHORT` | `duration: Duration(seconds: 2)` |
 | `toastLength: Toast.LENGTH_LONG` | `duration: Duration(milliseconds: 3500)` |
 | `Fluttertoast.cancel()` | `ButterToast.dismissAll()` |
+| 10 taps = 10 toasts in a queue | 10 taps = 1 toast ([why](#-repeated-taps-and-tags)) |
 
 ## 📱 Platforms
 
