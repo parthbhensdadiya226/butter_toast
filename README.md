@@ -681,6 +681,16 @@ Bugs, ideas and pull requests are welcome in the
 If butter_toast made your app a little smoother, a 👍 on
 [pub.dev](https://pub.dev/packages/butter_toast) helps others find it.
 
+## ☕ Support
+
+If this package saves you time, you can support its maintenance with a coffee:
+
+<a href="https://buymeacoffee.com/parthbhensdadiya"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="48"></a>
+
+Or scan the code:
+
+<img src="https://raw.githubusercontent.com/parthbhensdadiya226/butter_toast/main/doc/support_qr.png" width="160" alt="QR code for buymeacoffee.com/parthbhensdadiya">
+
 ## 📄 License
 
 MIT © Parth Bhensdadiya

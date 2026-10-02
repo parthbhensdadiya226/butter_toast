@@ -1,8 +1,10 @@
 name: butter_toast
 description: "Smooth, buttery toasts for Flutter: pill and Sonner-style card toasts, 7 positions with their own motion, promise toasts, swipe to dismiss, no context needed."
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/parthbhensdadiya226/butter_toast
 issue_tracker: https://github.com/parthbhensdadiya226/butter_toast/issues
+funding:
+  - https://buymeacoffee.com/parthbhensdadiya
 
 topics:
   - toast
